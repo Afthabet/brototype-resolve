@@ -1,12 +1,65 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [activeTab, setActiveTab] = useState<'student' | 'staff' | 'admin'>('student');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp, user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/student");
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { error } = await signUp(email, password, fullName, activeTab);
+        if (error) throw error;
+        toast({
+          title: "Account created!",
+          description: "You can now sign in with your credentials.",
+        });
+        setIsSignUp(false);
+        setEmail("");
+        setPassword("");
+        setFullName("");
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-hero flex flex-col">
       {/* Header */}
@@ -25,66 +78,76 @@ const Login = () => {
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-large">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              {isSignUp ? "Create Account" : "Welcome Back"}
+            </CardTitle>
             <CardDescription className="text-center">
-              Sign in to manage your complaints
+              {isSignUp ? "Sign up to submit complaints" : "Sign in to manage your complaints"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="student" className="w-full">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="student">Student</TabsTrigger>
                 <TabsTrigger value="staff">Staff</TabsTrigger>
                 <TabsTrigger value="admin">Admin</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="student" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="student-email">Email</Label>
-                  <Input id="student-email" type="email" placeholder="your.email@brototype.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="student-password">Password</Label>
-                  <Input id="student-password" type="password" />
-                </div>
-                <Button className="w-full bg-gradient-primary hover:opacity-90 transition-smooth">
-                  Sign In as Student
-                </Button>
-              </TabsContent>
-              
-              <TabsContent value="staff" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="staff-email">Email</Label>
-                  <Input id="staff-email" type="email" placeholder="staff@brototype.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="staff-password">Password</Label>
-                  <Input id="staff-password" type="password" />
-                </div>
-                <Button className="w-full bg-gradient-primary hover:opacity-90 transition-smooth">
-                  Sign In as Staff
-                </Button>
-              </TabsContent>
-              
-              <TabsContent value="admin" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="admin-email">Email</Label>
-                  <Input id="admin-email" type="email" placeholder="admin@brototype.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password">Password</Label>
-                  <Input id="admin-password" type="password" />
-                </div>
-                <Button className="w-full bg-gradient-primary hover:opacity-90 transition-smooth">
-                  Sign In as Admin
-                </Button>
-              </TabsContent>
+              <form onSubmit={handleSubmit}>
+                <TabsContent value={activeTab} className="space-y-4">
+                  {isSignUp && (
+                    <div className="space-y-2">
+                      <Label htmlFor="full-name">Full Name</Label>
+                      <Input
+                        id="full-name"
+                        type="text"
+                        placeholder="Your full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder={`${activeTab}@brototype.com`}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-primary hover:opacity-90 transition-smooth"
+                    disabled={loading}
+                  >
+                    {loading ? "Loading..." : isSignUp ? `Sign Up as ${activeTab}` : `Sign In as ${activeTab}`}
+                  </Button>
+                </TabsContent>
+              </form>
             </Tabs>
             
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              <a href="#" className="text-primary hover:underline">
-                Forgot your password?
-              </a>
+            <div className="mt-4 text-center text-sm">
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-primary hover:underline"
+              >
+                {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+              </button>
             </div>
           </CardContent>
         </Card>
