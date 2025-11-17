@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,18 +6,100 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const NewComplaint = () => {
-  const categories = [
-    "Academic",
-    "HR",
-    "Rules",
-    "Placement",
-    "Hostel",
-    "Technical"
-  ];
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
+  const [formData, setFormData] = useState({
+    title: "",
+    category_id: "",
+    priority: "",
+    description: "",
+  });
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setDbCategories(data || []);
+    } catch (error: any) {
+      console.error("Error loading categories:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load categories",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit a complaint",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.title || !formData.category_id || !formData.priority || !formData.description) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.from("complaints").insert([{
+        user_id: user.id,
+        title: formData.title,
+        category_id: formData.category_id,
+        priority: formData.priority as "low" | "medium" | "high",
+        description: formData.description,
+        status: "pending",
+        complaint_id: "",
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Your complaint has been submitted successfully",
+      });
+
+      navigate("/student");
+    } catch (error: any) {
+      console.error("Error submitting complaint:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit complaint",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout role="student">
@@ -42,26 +125,32 @@ const NewComplaint = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
                   placeholder="Brief description of your issue"
                   className="transition-smooth"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select>
+                <Label htmlFor="category">Category *</Label>
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                >
                   <SelectTrigger id="category" className="transition-smooth">
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category.toLowerCase()}>
-                        {category}
+                    {dbCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -69,8 +158,11 @@ const NewComplaint = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select>
+                <Label htmlFor="priority">Priority *</Label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                >
                   <SelectTrigger id="priority" className="transition-smooth">
                     <SelectValue placeholder="Select priority level" />
                   </SelectTrigger>
@@ -83,33 +175,24 @@ const NewComplaint = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   placeholder="Provide detailed information about your complaint..."
                   className="min-h-[150px] transition-smooth"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="attachments">Attachments (Optional)</Label>
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:bg-muted/50 transition-smooth cursor-pointer">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Images, PDFs, or videos (max 50MB)
-                  </p>
-                </div>
               </div>
 
               <div className="flex gap-4">
                 <Button
                   type="submit"
+                  disabled={loading}
                   className="bg-gradient-primary hover:opacity-90 transition-smooth"
                 >
-                  Submit Complaint
+                  {loading ? "Submitting..." : "Submit Complaint"}
                 </Button>
                 <Link to="/student">
                   <Button type="button" variant="outline">
