@@ -115,7 +115,7 @@ export type Database = {
         Row: {
           assigned_staff_id: string | null
           category_id: string
-          complaint_id: string
+          complaint_id: string | null
           created_at: string
           description: string
           id: string
@@ -129,7 +129,7 @@ export type Database = {
         Insert: {
           assigned_staff_id?: string | null
           category_id: string
-          complaint_id: string
+          complaint_id?: string | null
           created_at?: string
           description: string
           id?: string
@@ -143,7 +143,7 @@ export type Database = {
         Update: {
           assigned_staff_id?: string | null
           category_id?: string
-          complaint_id?: string
+          complaint_id?: string | null
           created_at?: string
           description?: string
           id?: string

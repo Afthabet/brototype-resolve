@@ -78,7 +78,6 @@ const NewComplaint = () => {
         priority: formData.priority as "low" | "medium" | "high",
         description: formData.description,
         status: "pending",
-        complaint_id: "",
       }]);
 
       if (error) throw error;

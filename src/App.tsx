@@ -9,6 +9,12 @@ import StudentDashboard from "./pages/StudentDashboard";
 import NewComplaint from "./pages/NewComplaint";
 import Complaints from "./pages/Complaints";
 import Profile from "./pages/Profile";
+import StaffDashboard from "./pages/StaffDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminComplaints from "./pages/AdminComplaints";
+import AdminComplaintDetail from "./pages/AdminComplaintDetail";
+import AdminUsers from "./pages/AdminUsers";
+import AdminCategories from "./pages/AdminCategories";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,10 +28,25 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          
+          {/* Student Routes */}
           <Route path="/student" element={<StudentDashboard />} />
           <Route path="/student/complaints" element={<Complaints />} />
           <Route path="/student/new-complaint" element={<NewComplaint />} />
           <Route path="/student/profile" element={<Profile />} />
+          
+          {/* Staff Routes */}
+          <Route path="/staff" element={<StaffDashboard />} />
+          <Route path="/staff/assigned" element={<StaffDashboard />} />
+          <Route path="/staff/profile" element={<Profile />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/complaints" element={<AdminComplaints />} />
+          <Route path="/admin/complaint/:id" element={<AdminComplaintDetail />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/settings" element={<AdminCategories />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
