@@ -100,6 +100,10 @@ const Profile = () => {
       .toUpperCase();
   };
 
+  if (!role || !user) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <DashboardLayout role={role as "student" | "staff" | "admin"}>
       <div className="space-y-6">
