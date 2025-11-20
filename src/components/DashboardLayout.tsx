@@ -1,6 +1,8 @@
 import { Shield, Home, FileText, User, LogOut, Users, Settings, BarChart3 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -8,6 +10,26 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to logout",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+      navigate("/login");
+    }
+  };
+
   const getNavItems = () => {
     switch (role) {
       case "student":
@@ -55,11 +77,13 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           </Link>
           
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm">
-              <User className="h-4 w-4 mr-2" />
-              Profile
-            </Button>
-            <Button variant="ghost" size="sm">
+            <Link to={`/${role}/profile`}>
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4 mr-2" />
+                Profile
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
