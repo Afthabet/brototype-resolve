@@ -8,6 +8,7 @@ import { Shield } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -21,9 +22,24 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate("/student");
-    }
+    const redirectToRoleDashboard = async () => {
+      if (user) {
+        // Fetch user role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (roleData) {
+          navigate(`/${roleData.role}`);
+        } else {
+          navigate("/student");
+        }
+      }
+    };
+    
+    redirectToRoleDashboard();
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
