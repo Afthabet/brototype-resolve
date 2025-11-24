@@ -47,24 +47,27 @@ const AdminDashboard = () => {
   }, []);
 
   const loadDashboardData = async () => {
+    setLoading(true);
     try {
-      // Load complaints stats
-      const { data: complaints, error: complaintsError } = await supabase
+      // Load all complaints with full details for analytics
+      const { data: allComplaints, error: complaintsError } = await supabase
         .from("complaints")
-        .select("id, status");
+        .select(`
+          id,
+          status,
+          priority,
+          category_id,
+          categories!inner (name)
+        `);
 
-      if (complaintsError) {
-        console.error("Error loading complaints:", complaintsError);
-        throw complaintsError;
-      }
+      if (complaintsError) throw complaintsError;
 
-      console.log("Loaded complaints:", complaints);
-
-      const totalComplaints = complaints?.length || 0;
-      const activeComplaints = complaints?.filter(
+      // Calculate stats
+      const totalComplaints = allComplaints?.length || 0;
+      const activeComplaints = allComplaints?.filter(
         c => c.status === "pending" || c.status === "in_progress"
       ).length || 0;
-      const resolvedComplaints = complaints?.filter(
+      const resolvedComplaints = allComplaints?.filter(
         c => c.status === "resolved"
       ).length || 0;
 
@@ -73,12 +76,7 @@ const AdminDashboard = () => {
         .from("profiles")
         .select("id");
 
-      if (profilesError) {
-        console.error("Error loading profiles:", profilesError);
-        throw profilesError;
-      }
-
-      console.log("Loaded profiles:", profiles);
+      if (profilesError) throw profilesError;
 
       const totalUsers = profiles?.length || 0;
 
@@ -89,7 +87,7 @@ const AdminDashboard = () => {
         totalUsers,
       });
 
-      // Load recent complaints with proper joins
+      // Load recent complaints
       const { data: recent, error: recentError } = await supabase
         .from("complaints")
         .select(`
@@ -104,49 +102,41 @@ const AdminDashboard = () => {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (recentError) {
-        console.error("Error loading recent complaints:", recentError);
-        throw recentError;
-      }
-
-      console.log("Loaded recent complaints:", recent);
+      if (recentError) throw recentError;
       setRecentComplaints(recent || []);
 
-      // Load category analytics
-      const { data: categoryStats, error: categoryError } = await supabase
-        .from("complaints")
-        .select(`
-          category_id,
-          categories!inner (name)
-        `);
-
-      if (!categoryError && categoryStats) {
-        const categoryMap = new Map();
-        categoryStats.forEach((item: any) => {
-          const catName = item.categories?.name || "Unknown";
-          categoryMap.set(catName, (categoryMap.get(catName) || 0) + 1);
-        });
-        const catData = Array.from(categoryMap.entries()).map(([name, value]) => ({
-          name,
-          value
-        }));
-        setCategoryData(catData);
-      }
-
-      // Load status analytics
-      const statusMap = new Map();
-      complaints?.forEach((c: any) => {
-        statusMap.set(c.status, (statusMap.get(c.status) || 0) + 1);
+      // Process category analytics from all complaints
+      const categoryMap = new Map<string, number>();
+      allComplaints?.forEach((complaint: any) => {
+        const catName = complaint.categories?.name || "Unknown";
+        categoryMap.set(catName, (categoryMap.get(catName) || 0) + 1);
       });
+      
+      const catData = Array.from(categoryMap.entries()).map(([name, value]) => ({
+        name,
+        value
+      }));
+      setCategoryData(catData);
+
+      // Process status analytics
+      const statusMap = new Map<string, number>();
+      allComplaints?.forEach((complaint: any) => {
+        const statusLabel = complaint.status
+          .replace('_', ' ')
+          .split(' ')
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+        statusMap.set(statusLabel, (statusMap.get(statusLabel) || 0) + 1);
+      });
+      
       const statData = Array.from(statusMap.entries()).map(([name, value]) => ({
-        name: name.replace('_', ' ').toUpperCase(),
+        name,
         value
       }));
       setStatusData(statData);
 
     } catch (error: any) {
       console.error("Error loading dashboard data:", error);
-      setLoading(false);
     } finally {
       setLoading(false);
     }
