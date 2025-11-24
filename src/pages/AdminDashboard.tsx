@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, Users, CheckCircle, TrendingUp } from "lucide-react";
+import { ClipboardList, Users, CheckCircle, TrendingUp, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -12,7 +17,30 @@ const AdminDashboard = () => {
     totalUsers: 0,
   });
   const [recentComplaints, setRecentComplaints] = useState<any[]>([]);
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [statusData, setStatusData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+  
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case "pending": return "secondary";
+      case "in_progress": return "default";
+      case "resolved": return "default";
+      case "rejected": return "destructive";
+      default: return "secondary";
+    }
+  };
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case "high": return "destructive";
+      case "medium": return "default";
+      case "low": return "secondary";
+      default: return "secondary";
+    }
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -84,6 +112,38 @@ const AdminDashboard = () => {
       console.log("Loaded recent complaints:", recent);
       setRecentComplaints(recent || []);
 
+      // Load category analytics
+      const { data: categoryStats, error: categoryError } = await supabase
+        .from("complaints")
+        .select(`
+          category_id,
+          categories!inner (name)
+        `);
+
+      if (!categoryError && categoryStats) {
+        const categoryMap = new Map();
+        categoryStats.forEach((item: any) => {
+          const catName = item.categories?.name || "Unknown";
+          categoryMap.set(catName, (categoryMap.get(catName) || 0) + 1);
+        });
+        const catData = Array.from(categoryMap.entries()).map(([name, value]) => ({
+          name,
+          value
+        }));
+        setCategoryData(catData);
+      }
+
+      // Load status analytics
+      const statusMap = new Map();
+      complaints?.forEach((c: any) => {
+        statusMap.set(c.status, (statusMap.get(c.status) || 0) + 1);
+      });
+      const statData = Array.from(statusMap.entries()).map(([name, value]) => ({
+        name: name.replace('_', ' ').toUpperCase(),
+        value
+      }));
+      setStatusData(statData);
+
     } catch (error: any) {
       console.error("Error loading dashboard data:", error);
       setLoading(false);
@@ -151,10 +211,70 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
+        {/* Analytics Charts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Complaints by Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {statusData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={statusData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No data available</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Complaints by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="hsl(var(--primary))"
+                      dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">No data available</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Recent Complaints */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Complaints</CardTitle>
+            <Link to="/admin/complaints">
+              <Button variant="outline" size="sm">
+                View All <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -162,22 +282,35 @@ const AdminDashboard = () => {
             ) : recentComplaints.length === 0 ? (
               <p className="text-muted-foreground">No complaints yet</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {recentComplaints.map((complaint) => (
-                  <div
+                  <Link
                     key={complaint.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    to={`/admin/complaints/${complaint.id}`}
+                    className="block"
                   >
-                    <div className="flex-1">
-                      <p className="font-medium">{complaint.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {complaint.categories?.name} • {complaint.profiles?.full_name}
-                      </p>
+                    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors cursor-pointer">
+                      <div className="flex-1 space-y-1">
+                        <p className="font-medium">{complaint.title}</p>
+                        <div className="flex gap-2 items-center text-sm text-muted-foreground">
+                          <span>{complaint.categories?.name}</span>
+                          <span>•</span>
+                          <span>{complaint.profiles?.full_name}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Badge variant={getStatusVariant(complaint.status)}>
+                            {complaint.status.replace('_', ' ')}
+                          </Badge>
+                          <Badge variant={getPriorityVariant(complaint.priority)}>
+                            {complaint.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(complaint.created_at).toLocaleDateString()}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(complaint.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
