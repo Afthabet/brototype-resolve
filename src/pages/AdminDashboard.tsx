@@ -25,7 +25,12 @@ const AdminDashboard = () => {
         .from("complaints")
         .select("id, status");
 
-      if (complaintsError) throw complaintsError;
+      if (complaintsError) {
+        console.error("Error loading complaints:", complaintsError);
+        throw complaintsError;
+      }
+
+      console.log("Loaded complaints:", complaints);
 
       const totalComplaints = complaints?.length || 0;
       const activeComplaints = complaints?.filter(
@@ -40,7 +45,12 @@ const AdminDashboard = () => {
         .from("profiles")
         .select("id");
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error loading profiles:", profilesError);
+        throw profilesError;
+      }
+
+      console.log("Loaded profiles:", profiles);
 
       const totalUsers = profiles?.length || 0;
 
@@ -51,22 +61,32 @@ const AdminDashboard = () => {
         totalUsers,
       });
 
-      // Load recent complaints
+      // Load recent complaints with proper joins
       const { data: recent, error: recentError } = await supabase
         .from("complaints")
         .select(`
-          *,
-          categories (name),
-          profiles (full_name)
+          id,
+          title,
+          status,
+          priority,
+          created_at,
+          categories!inner (name),
+          profiles!complaints_user_id_fkey (full_name)
         `)
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (recentError) throw recentError;
+      if (recentError) {
+        console.error("Error loading recent complaints:", recentError);
+        throw recentError;
+      }
+
+      console.log("Loaded recent complaints:", recent);
       setRecentComplaints(recent || []);
 
     } catch (error: any) {
       console.error("Error loading dashboard data:", error);
+      setLoading(false);
     } finally {
       setLoading(false);
     }
