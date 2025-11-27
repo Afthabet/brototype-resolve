@@ -43,7 +43,7 @@ const AdminComplaintDetail = () => {
 
       setComplaint(data);
       setStatus(data.status);
-      setAssignedStaffId(data.assigned_staff_id || "");
+      setAssignedStaffId(data.assigned_staff_id || "unassigned");
       setPriority(data.priority);
     } catch (error: any) {
       console.error("Error loading complaint:", error);
@@ -93,7 +93,7 @@ const AdminComplaintDetail = () => {
       const updates: any = {
         status,
         priority,
-        assigned_staff_id: assignedStaffId || null,
+        assigned_staff_id: assignedStaffId === "unassigned" ? null : assignedStaffId,
       };
 
       if (status === "resolved" && !complaint.resolved_at) {
@@ -233,7 +233,7 @@ const AdminComplaintDetail = () => {
                     <SelectValue placeholder="Select staff member" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {staff.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.full_name} ({s.email})
