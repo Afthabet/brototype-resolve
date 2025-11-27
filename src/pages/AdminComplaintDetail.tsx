@@ -34,10 +34,10 @@ const AdminComplaintDetail = () => {
         .select(`
           *,
           categories (name),
-          profiles (full_name, email)
+          profiles!complaints_user_id_fkey (full_name, email)
         `)
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

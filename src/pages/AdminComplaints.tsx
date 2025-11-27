@@ -32,7 +32,7 @@ const AdminComplaints = () => {
         .select(`
           *,
           categories (name),
-          profiles (full_name, email)
+          profiles!complaints_user_id_fkey (full_name, email)
         `)
         .order("created_at", { ascending: false });
 
@@ -187,7 +187,7 @@ const AdminComplaints = () => {
                         Created: {new Date(complaint.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <Link to={`/admin/complaint/${complaint.id}`}>
+                    <Link to={`/admin/complaints/${complaint.id}`}>
                       <Button variant="outline" size="sm">
                         Manage
                       </Button>
