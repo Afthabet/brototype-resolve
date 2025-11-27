@@ -184,8 +184,9 @@ const StudentDashboard = () => {
                 </Card>
               ) : (
                 complaints.slice(0, 5).map((complaint) => (
-                  <Card key={complaint.id} className="shadow-soft hover:shadow-medium transition-smooth">
-                    <CardContent className="p-6">
+                  <Link key={complaint.id} to={`/student/complaint/${complaint.id}`}>
+                    <Card className="shadow-soft hover:shadow-medium transition-smooth cursor-pointer">
+                      <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="space-y-3 flex-1">
                           <div className="flex items-start gap-3">
@@ -220,7 +221,8 @@ const StudentDashboard = () => {
                         </Badge>
                       </div>
                     </CardContent>
-                  </Card>
+                    </Card>
+                  </Link>
                 ))
               )}
             </div>

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentComplaintDetail from "./pages/StudentComplaintDetail";
 import NewComplaint from "./pages/NewComplaint";
 import Complaints from "./pages/Complaints";
 import Profile from "./pages/Profile";
@@ -32,6 +33,7 @@ const App = () => (
           
           {/* Student Routes */}
           <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/student/complaint/:id" element={<StudentComplaintDetail />} />
           <Route path="/student/complaints" element={<Complaints />} />
           <Route path="/student/new-complaint" element={<NewComplaint />} />
           <Route path="/student/profile" element={<Profile />} />
