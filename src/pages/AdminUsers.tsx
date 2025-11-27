@@ -22,15 +22,27 @@ const AdminUsers = () => {
 
   const loadUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // Load profiles
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          user_roles (role)
-        `);
+        .select("*");
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Load user roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Combine the data
+      const usersWithRoles = profilesData?.map(profile => ({
+        ...profile,
+        user_roles: rolesData?.filter(role => role.user_id === profile.id) || []
+      })) || [];
+
+      setUsers(usersWithRoles);
     } catch (error: any) {
       console.error("Error loading users:", error);
     } finally {
