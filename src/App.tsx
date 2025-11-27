@@ -15,6 +15,7 @@ import AdminComplaints from "./pages/AdminComplaints";
 import AdminComplaintDetail from "./pages/AdminComplaintDetail";
 import AdminUsers from "./pages/AdminUsers";
 import AdminCategories from "./pages/AdminCategories";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,8 +44,9 @@ const App = () => (
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/complaints" element={<AdminComplaints />} />
-          <Route path="/admin/complaint/:id" element={<AdminComplaintDetail />} />
+          <Route path="/admin/complaints/:id" element={<AdminComplaintDetail />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/settings" element={<AdminCategories />} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
